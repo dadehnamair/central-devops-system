@@ -1,0 +1,81 @@
+services:
+  s-accounting-service-fastapi:
+    build: ../accounting-service
+    container_name: c-accounting-service-fastapi
+    ports:
+      - "45680:8000"
+    env_file:
+      - .env
+    volumes:
+      - ../accounting-service:/app
+    depends_on:
+      s-mysql-service-fastapi:
+        condition: service_healthy
+    networks:
+      - airplus-network
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2048M
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    restart: unless-stopped
+
+  s-mysql-service-fastapi:
+    image: mysql:8.0
+    container_name: c-mysql-service-fastapi
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+      MYSQL_DATABASE: ${DB_NAME}
+    ports:
+      - "45681:3306"
+    volumes:
+      - fastapi_mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - airplus-network
+    deploy:
+      resources:
+        limits:
+          cpus: '4.0'
+          memory: 4096M
+        reservations:
+          cpus: '1.0'
+          memory: 1024M
+    restart: unless-stopped
+
+  s-phpmyadmin-service-fastapi:
+    image: phpmyadmin:latest
+    container_name: c-phpmyadmin-service-fastapi
+    environment:
+      PMA_HOST: s-mysql-service-fastapi
+      PMA_PORT: "3306"
+    ports:
+      - "45682:80"
+    depends_on:
+      s-mysql-service-fastapi:
+        condition: service_healthy
+    networks:
+      - airplus-network
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.2'
+          memory: 128M
+    restart: unless-stopped
+
+volumes:
+  fastapi_mysql_data:
+
+networks:
+  airplus-network:
+    external: true
