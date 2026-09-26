@@ -138,7 +138,9 @@ services:
     image: airplus/accounting-service:dev
     build: ../accounting-service
     container_name: c-messaging-consumer-fastapi
-    command: ["python", "-m", "app.workers", "consume", "ledger", "diagnostics"]
+    # No service names = every messaging service the app registers (ledger,
+    # diagnostics, intake_test, and future ones) — no compose change per service.
+    command: ["python", "-m", "app.workers", "consume"]
     env_file:
       - .env
     environment:
