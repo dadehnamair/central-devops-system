@@ -89,6 +89,10 @@ docker compose logs -f s-accounting-service-fastapi
 # accounting-service: http://localhost:45680  (docs at /docs)
 # mysql:               localhost:45681
 # phpMyAdmin:          http://localhost:45682
+# RabbitMQ panel:      http://localhost:45683  (login: RABBITMQ_USER / RABBITMQ_PASSWORD from .env)
+# RabbitMQ AMQP:       localhost:45684 from the host; s-rabbitmq-service-fastapi:5672 inside the network
+# RabbitMQ guide (Persian, hands-on): docs/rabbitmq-guide.md
+docker compose logs -f s-rabbitmq-service-fastapi
 
 # Migrations (run inside the accounting-service container)
 docker compose exec s-accounting-service-fastapi alembic revision --autogenerate -m "<message>"
