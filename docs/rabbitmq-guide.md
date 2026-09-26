@@ -225,3 +225,32 @@ for e in demo.documents demo.dlx; do R delete exchange --name $e; done
 | بعد از ری‌استارت پیام‌ها گم شدند | صف `Durable` نبوده یا پیام `Persistent` (delivery mode 2) نبوده. صف‌های quorum همیشه ماندگارند؛ پیام را هم Persistent بفرستید. |
 | بعد از بازسازی کانتینر همهٔ داده‌ها رفت | اگر `hostname` سرویس عوض شود، RabbitMQ دادهٔ قبلی را (که با نام نود قبلی ذخیره شده) نمی‌بیند. `hostname: rabbitmq` در فایل ارکستراسیون نباید تغییر کند. |
 | پیام در Unacked گیر کرده | مصرف‌کننده پیام را برداشته ولی Ack نداده؛ وقتی اتصالش بسته شود، پیام خودکار به Ready برمی‌گردد. |
+
+---
+
+## ۸. صف‌های واقعی سیستم و کارگرها
+
+از این به بعد، خود سیستم (نه تمرین‌ها) این‌ها را **خودکار** در vhost ‏`accounting` می‌سازد — دستی از پنل نسازید و پاک نکنید:
+
+| نام | نوع | کاربرد |
+|---|---|---|
+| `acc.commands` | exchange (direct) | فرمان‌ها؛ کلید = سرویس گیرنده |
+| `acc.replies` | exchange (direct) | پاسخ فرمان‌ها؛ کلید = سرویس فرستندهٔ فرمان |
+| `acc.events` | exchange (topic) | رویدادها؛ کلید = نوع پیام |
+| `acc.dlx` | exchange (direct) | پیام‌های مرده |
+| `ledger.commands` | صف quorum | فرمان‌های دفترداری (فقط یک مصرف‌کنندهٔ فعال) |
+| `diagnostics.replies` | صف quorum | پاسخ‌های پینگ آزمایشی |
+| `<صف>.retry` | صف classic | انتظار برای تلاش مجدد با تأخیر؛ بعد خودکار به صف اصلی برمی‌گردد |
+| `<صف>.dlq` | صف quorum | پیام‌هایی که پردازش نشدند (خراب، ناشناخته، یا بعد از چند تلاش ناموفق) |
+
+دو کانتینر کارگر کنار سرویس حسابداری اجرا می‌شوند:
+- `s-messaging-relay-fastapi` — پیام‌های «صندوق خروجی» پایگاه داده را به RabbitMQ می‌فرستد.
+- `s-messaging-consumer-fastapi` — پیام‌های صف‌ها را برمی‌دارد و پردازش می‌کند.
+
+```bash
+docker compose logs -f s-messaging-relay-fastapi s-messaging-consumer-fastapi
+docker compose restart s-messaging-relay-fastapi s-messaging-consumer-fastapi   # بعد از تغییر کد (خودکار ری‌لود نمی‌شوند)
+```
+
+**آزمایش از کنسول تست:** زبانهٔ «پیام‌رسانی» ← «ارسال پینگ». حالت `ok` پاسخ «انجام شد» می‌گیرد، `reject` پاسخ «رد شد»، و `fail` بعد از ۳ تلاش مجدد (در پنل: `ledger.commands.retry`) به `ledger.commands.dlq` می‌رود. «ارسال تکراری» نشان می‌دهد همان پیام دوباره اجرا نمی‌شود. با `docker compose stop s-messaging-consumer-fastapi` و ارسال پینگ، پیام را در صف `ledger.commands` پنل می‌بینید؛ با `start` پاسخ می‌گیرد.
+

@@ -94,6 +94,11 @@ docker compose logs -f s-accounting-service-fastapi
 # RabbitMQ guide (Persian, hands-on): docs/rabbitmq-guide.md
 docker compose logs -f s-rabbitmq-service-fastapi
 
+# Messaging workers (outbox relay + consumer) — same image as the API, no ports
+docker compose logs -f s-messaging-relay-fastapi s-messaging-consumer-fastapi
+# they do NOT auto-reload: restart them after changing accounting-service code
+docker compose restart s-messaging-relay-fastapi s-messaging-consumer-fastapi
+
 # Migrations (run inside the accounting-service container)
 docker compose exec s-accounting-service-fastapi alembic revision --autogenerate -m "<message>"
 docker compose exec s-accounting-service-fastapi alembic upgrade head
