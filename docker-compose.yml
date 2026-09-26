@@ -73,8 +73,40 @@ services:
           memory: 128M
     restart: unless-stopped
 
+  s-rabbitmq-service-fastapi:
+    image: rabbitmq:4.1-management
+    container_name: c-rabbitmq-service-fastapi
+    hostname: rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
+      RABBITMQ_DEFAULT_VHOST: ${RABBITMQ_VHOST}
+    ports:
+      - "${RABBITMQ_MANAGEMENT_PORT:-45683}:15672"
+      - "${RABBITMQ_AMQP_PORT:-45684}:5672"
+    volumes:
+      - fastapi_rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 10s
+      retries: 12
+      start_period: 30s
+    networks:
+      - airplus-network
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1024M
+        reservations:
+          cpus: '0.2'
+          memory: 256M
+    restart: unless-stopped
+
 volumes:
   fastapi_mysql_data:
+  fastapi_rabbitmq_data:
 
 networks:
   airplus-network:
