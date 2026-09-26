@@ -1,5 +1,6 @@
 services:
   s-accounting-service-fastapi:
+    image: airplus/accounting-service:dev
     build: ../accounting-service
     container_name: c-accounting-service-fastapi
     ports:
@@ -102,6 +103,64 @@ services:
         reservations:
           cpus: '0.2'
           memory: 256M
+    restart: unless-stopped
+
+  s-messaging-relay-fastapi:
+    image: airplus/accounting-service:dev
+    build: ../accounting-service
+    container_name: c-messaging-relay-fastapi
+    command: ["python", "-m", "app.workers", "relay"]
+    env_file:
+      - .env
+    environment:
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - ../accounting-service:/app
+    depends_on:
+      s-mysql-service-fastapi:
+        condition: service_healthy
+      s-rabbitmq-service-fastapi:
+        condition: service_healthy
+    networks:
+      - airplus-network
+    stop_grace_period: 30s
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          cpus: '0.1'
+          memory: 64M
+    restart: unless-stopped
+
+  s-messaging-consumer-fastapi:
+    image: airplus/accounting-service:dev
+    build: ../accounting-service
+    container_name: c-messaging-consumer-fastapi
+    command: ["python", "-m", "app.workers", "consume", "ledger", "diagnostics"]
+    env_file:
+      - .env
+    environment:
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - ../accounting-service:/app
+    depends_on:
+      s-mysql-service-fastapi:
+        condition: service_healthy
+      s-rabbitmq-service-fastapi:
+        condition: service_healthy
+    networks:
+      - airplus-network
+    stop_grace_period: 30s
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          cpus: '0.1'
+          memory: 64M
     restart: unless-stopped
 
 volumes:
