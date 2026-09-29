@@ -138,9 +138,41 @@ services:
     image: airplus/accounting-service:dev
     build: ../accounting-service
     container_name: c-messaging-consumer-fastapi
-    # No service names = every messaging service the app registers (ledger,
-    # diagnostics, intake_test, and future ones) — no compose change per service.
+    # No explicit service list: consumes every registered service's queues
+    # (ledger, diagnostics, document, intake_test, ...) so a newly added
+    # service is never silently unconsumed again — this hardcoded list used
+    # to read ["ledger", "diagnostics"] only, which is why the document
+    # engine's own replies were never being picked up.
     command: ["python", "-m", "app.workers", "consume"]
+    env_file:
+      - .env
+    environment:
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - ../accounting-service:/app
+    depends_on:
+      s-mysql-service-fastapi:
+        condition: service_healthy
+      s-rabbitmq-service-fastapi:
+        condition: service_healthy
+    networks:
+      - airplus-network
+    stop_grace_period: 30s
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          cpus: '0.1'
+          memory: 64M
+    restart: unless-stopped
+
+  s-intake-reconciler-fastapi:
+    image: airplus/accounting-service:dev
+    build: ../accounting-service
+    container_name: c-intake-reconciler-fastapi
+    command: ["python", "-m", "app.workers", "reconcile-intake"]
     env_file:
       - .env
     environment:
