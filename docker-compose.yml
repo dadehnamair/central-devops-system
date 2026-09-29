@@ -27,6 +27,7 @@ services:
   s-mysql-service-fastapi:
     image: mysql:8.0
     container_name: c-mysql-service-fastapi
+    command: ["mysqld", "--performance-schema=OFF"]
     environment:
       MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
       MYSQL_DATABASE: ${DB_NAME}
